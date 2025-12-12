@@ -82,3 +82,12 @@ You should find that the layer alphas converge to 2.0 and
 that the test accuracies match that of the baseline (AdamW).
 
 See the Notebook WW-PGD-QuickStart.ipynb
+
+
+<hr>
+
+## Contributors
+
+[Charles H Martin, PhD](https://www.linkedin.com/in/charlesmartin14)
+[Hari Kishan Prakash](https://www.linkedin.com/in/hari-kishan-prakash-2b786967/)
+
