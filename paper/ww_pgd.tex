@@ -1,0 +1,287 @@
+\documentclass[11pt]{article}
+
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{geometry}
+\usepackage{hyperref}
+\usepackage{cite}
+\usepackage{bm}
+\usepackage{empheq}
+\usepackage{draftwatermark}
+
+\geometry{margin=1in}
+
+\SetWatermarkText{DRAFT}
+\SetWatermarkScale{4}
+
+\newcommand{\WWPGD}{\textsc{WW-PGD}}
+\newcommand{\detX}{\mathrm{det}\,X}
+
+\title{\textbf{\WWPGD: WeightWatcher Projected Gradient Descent}}
+\author{Charles H. Martin}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+We introduce \WWPGD\ (WeightWatcher Projected Gradient Descent), a spectral
+projection method designed as an add-on to standard gradient-based optimizers,
+with primary empirical validation using AdamW.
+\WWPGD\ applies structured projections in spectral space at batch or epoch
+boundaries using diagnostics computed by the WeightWatcher library.
+These projections explicitly drive neural network weight matrices toward the
+empirical renormalization group (ERG) fixed point identified in the
+Semi-Empirical Theory of (Deep) Learning (SETOL), characterized by a
+heavy-tailed spectral exponent $\alpha \approx 2$ and a vanishing trace--log
+condition over the spectral tail.
+\end{abstract}
+
+% ------------------------------------------------------------
+\section{Background and Motivation}
+
+Empirical studies have shown that well-trained deep neural networks exhibit
+heavy-tailed empirical spectral distributions (ESDs) of their layer-wise weight
+correlation matrices
+\cite{martin2019heavy, martin2021nature}.
+In such models, the tail of the eigenvalue distribution follows an approximate
+power law
+\begin{equation}
+\rho(\lambda) \sim \lambda^{-\alpha},
+\end{equation}
+with $\alpha$ typically in the range $(2,4)$ and a strong empirical attraction
+toward $\alpha \approx 2$.
+
+Heavy-Tailed Self-Regularization (HTSR) theory explains this behavior as an
+emergent consequence of stochastic optimization
+\cite{martin2019heavy}.
+SETOL extends HTSR by identifying a universal empirical renormalization group
+(ERG) fixed point governing optimal generalization
+\cite{martin2025setol}.
+Related phenomena such as grokking and generalization collapse are explained
+within the same framework \cite{prakash2025grokking}.
+
+\WWPGD\ is designed to make this fixed point \emph{explicitly reachable} during
+training by augmenting standard optimizers with principled spectral projections.
+
+% ------------------------------------------------------------
+\section{Weight Matrices and Spectral Normalization}
+
+Let $W \in \mathbb{R}^{N \times M}$ denote a layer weight matrix.
+Following standard practice, we define the layer-wise correlation matrix as
+\begin{equation}
+\boxed{
+X \;=\; \frac{1}{N}\, W^{\top} W ,
+}
+\end{equation}
+where $X \in \mathbb{R}^{M \times M}$.
+
+This normalization ensures that $X$ remains well-scaled as the layer width $N$
+changes, and corresponds to the usual mean-field normalization of correlation
+matrices.
+
+\paragraph{Secondary normalization (WeightWatcher).}
+In practice, WeightWatcher applies a second, lightweight normalization to $X$
+that rescales its eigenvalues so that their average magnitude is $\mathcal{O}(1)$.
+This removes an otherwise arbitrary global scale and makes spectral diagnostics
+(such as $\alpha$, $\texttt{num\_pl\_spikes}$, and $\texttt{detX\_num}$) directly
+comparable across layers of different sizes.
+
+This second normalization does \emph{not} alter the shape of the spectrum, only
+its overall scale, and is essential for defining the ERG trace--log condition
+consistently.
+
+All spectral quantities used by \WWPGD\ are computed from the spectrum of this
+normalized matrix.
+
+% ------------------------------------------------------------
+\section{Critical Conditions from HTSR and SETOL}
+
+HTSR and SETOL identify two complementary critical conditions governing optimal
+generalization.
+
+\subsection{HTSR Critical Condition}
+
+\begin{empheq}[box=\fbox]{equation}
+\alpha \;\approx\; 2
+\end{empheq}
+
+This condition corresponds to scale invariance of the ESD tail and is observed
+empirically across architectures, datasets, and training regimes.
+Values $\alpha > 2$ correspond to progressively weaker correlations.
+By contrast, values $\alpha < 2$ are generally associated with excessive
+correlation and overfitting, although such regimes may be useful in specialized
+memorization-heavy settings; this remains under investigation.
+
+\subsection{SETOL (ERG) Critical Condition}
+
+Let $\{\lambda_i\}$ denote the normalized eigenvalues of $X$, ordered in
+descending magnitude, and let ``tail'' denote the heavy-tailed spectral subspace.
+
+SETOL identifies the ERG fixed point via a vanishing trace--log condition:
+\begin{empheq}[box=\fbox]{equation}
+\sum_{i \in \text{tail}} \log \lambda_i \;=\; 0 ,
+\end{empheq}
+or equivalently,
+\begin{equation}
+\det X_{\text{tail}} = 1 .
+\end{equation}
+
+This condition removes the remaining scale degree of freedom in the tail and
+defines a true ERG fixed point rather than a marginal flow.
+
+% ------------------------------------------------------------
+\section{WeightWatcher Diagnostics and the Midpoint Rule}
+
+At each projection step (performed at batch or epoch boundaries),
+\WWPGD\ runs WeightWatcher and extracts two complementary diagnostics for each
+layer:
+\begin{itemize}
+\item \textbf{\texttt{num\_pl\_spikes}}: the number of statistically significant
+power-law spikes in the ESD tail.
+\item \textbf{\texttt{detX\_num}}: a trace--log based estimate of the effective
+tail size, i.e.\ the number of eigenvalues contributing to the ERG constraint.
+\end{itemize}
+
+These two quantities define an interval of uncertainty for the true tail size.
+\WWPGD\ resolves this uncertainty using a midpoint rule,
+\begin{equation}
+k_{\text{mid}} =
+\left\lfloor
+\frac{
+\texttt{num\_pl\_spikes} + \texttt{detX\_num}
+}{2}
+\right\rfloor,
+\end{equation}
+and defines the spectral tail as the top $k_{\text{mid}}$ eigenvalues.
+
+\paragraph{Exactness at criticality.}
+A key prediction of SETOL is that, as $\alpha \to 2$, the two diagnostics converge:
+\begin{equation}
+\boxed{
+\texttt{num\_pl\_spikes} = \texttt{detX\_num}.
+}
+\end{equation}
+Consequently, the midpoint rule becomes exact at the ERG fixed point.
+
+% ------------------------------------------------------------
+\section{Projected Gradient Descent on the ERG Manifold}
+
+\WWPGD\ is a projected gradient descent (PGD) method \cite{bertsekas1999nonlinear},
+applied in \emph{spectral space} rather than parameter space.
+
+Conceptually, the ERG fixed point defines a \emph{critical manifold} in the space
+of spectra: the set of weight matrices whose ESD tails satisfy
+\[
+\alpha \approx 2,
+\qquad
+\sum_{i \in \text{tail}} \log \lambda_i = 0.
+\]
+
+Standard optimizers do not explicitly enforce these conditions.
+\WWPGD\ augments them by projecting weights back toward this manifold during
+training.
+
+\subsection{Algorithmic Structure}
+
+Each training iteration consists of two stages:
+\begin{enumerate}
+\item \textbf{Base optimizer step.}
+A standard optimizer (e.g.\ AdamW) updates the weights using gradient descent:
+\[
+W \leftarrow W - \eta \nabla_W \mathcal{L}.
+\]
+
+\item \textbf{Spectral projection (WW-PGD).}
+At prescribed boundaries, the updated weights are projected onto the ERG
+constraint set by:
+\begin{itemize}
+\item computing the SVD of $W$,
+\item identifying the spectral tail via the midpoint rule,
+\item reshaping the tail eigenvalues toward a power-law template with
+target exponent $\alpha \to 2$,
+\item retracting to exactly satisfy the trace--log constraint,
+\item reconstructing $W$ and blending with the pre-projection weights.
+\end{itemize}
+\end{enumerate}
+
+This projection is implemented via a Cayley-style multiplicative update in
+log-eigenvalue space, which preserves positivity and allows controlled movement
+along the ERG manifold.
+
+\paragraph{Homotopy behavior.}
+Early in training, the projection is softened to avoid disrupting feature
+formation.
+As training progresses and $\alpha$ approaches $2$, the projection is gradually
+hardened, yielding a homotopy toward the ERG fixed point rather than a hard
+constraint from initialization.
+
+% ------------------------------------------------------------
+\section{Practical Considerations}
+
+Because \WWPGD\ requires spectral decompositions, it is inherently more
+computationally expensive than pure gradient descent.
+If applied too aggressively or too early, it may slow convergence or interfere
+with early representation learning.
+
+For this reason, practical implementations typically include:
+\begin{itemize}
+\item warmup epochs with no projection,
+\item reduced projection frequency (e.g.\ per epoch),
+\item softened projections early in training.
+\end{itemize}
+
+Performance optimizations and tighter integrations with base optimizers are
+active areas of ongoing work.
+User feedback and empirical results on a broader range of architectures and
+optimizers are strongly encouraged.
+
+% ------------------------------------------------------------
+\section{Conclusion}
+
+\WWPGD\ combines empirical spectral diagnostics from WeightWatcher with classical
+projected gradient descent to explicitly guide neural networks toward the HTSR
+and SETOL ERG fixed point.
+By enforcing $\alpha \approx 2$, a vanishing tail trace--log condition, and a
+dynamically exact midpoint rule, \WWPGD\ provides a principled mechanism for
+controlling spectral geometry during training.
+
+% ------------------------------------------------------------
+\bibliographystyle{plain}
+\begin{thebibliography}{9}
+
+\bibitem{martin2019heavy}
+C.~H. Martin and M.~W. Mahoney.
+\newblock Implicit Self-Regularization in Deep Neural Networks.
+\newblock \emph{Journal of Machine Learning Research}, 22(213):1--40, 2021.
+\newblock \url{https://jmlr.org/papers/v22/20-410.html}
+
+\bibitem{martin2021nature}
+C.~H. Martin, T.~Peng, and M.~W. Mahoney.
+\newblock Predicting trends in the quality of state-of-the-art neural networks.
+\newblock \emph{Nature Communications}, 12:3892, 2021.
+\newblock \url{https://www.nature.com/articles/s41467-021-24025-8}
+
+\bibitem{prakash2025grokking}
+H.~K. Prakash and C.~H. Martin.
+\newblock Grokking and Generalization Collapse: Insights from HTSR Theory.
+\newblock \emph{arXiv:2506.04434}, 2025.
+\newblock \url{https://arxiv.org/abs/2506.04434}
+
+\bibitem{martin2025setol}
+C.~H. Martin and C.~Hinrichs.
+\newblock SETOL: Semi-Empirical Theory of (Deep) Learning.
+\newblock \emph{arXiv:2507.17912}, 2025.
+\newblock \url{https://arxiv.org/abs/2507.17912}
+
+\bibitem{bertsekas1999nonlinear}
+D.~P. Bertsekas.
+\newblock \emph{Nonlinear Programming}.
+\newblock Athena Scientific, 1999.
+
+\bibitem{weightwatcher}
+WeightWatcher.
+\newblock \url{https://weightwatcher.ai/}
+
+\end{thebibliography}
+
+\end{document}
