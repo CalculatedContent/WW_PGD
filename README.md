@@ -8,6 +8,9 @@ It is designed to wrap any PyTorch optimizer:
 - Adam / AdamW
 - Muon (or any custom optimizer with a `step()` method)
 
+Warning: This very experimental, optimized for understanding if out-of-sample performance increases,
+but is not optimized yet for numerical performance.
+
 ## Install
 
 ```bash
@@ -70,5 +73,12 @@ import weightwatcher as ww
 watcher = ww.WeightWatcher(model=model)
 details = watcher.analyze(detX=True, randomize=False, plot=True)
 details
-
 ```
+
+### Realistic Example
+Train a 3-layer MLP on FashionMNIST using AdamW+Ww_PGD
+
+You should find that the layer alphas converge to 2.0 and
+that the test accuracies match that of the baseline (AdamW).
+
+See the Notebook WW-PGD-QuickStart.ipynb
