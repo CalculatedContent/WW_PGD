@@ -8,10 +8,13 @@ It is designed to wrap any PyTorch optimizer:
 - Adam / AdamW
 - Muon (or any custom optimizer with a `step()` method)
 
-## Install and Quickstart
+## Install
 
 ```bash
 pip install ww_pgd
+
+```markdown
+## Quickstart
 
 ```python
 import torch
