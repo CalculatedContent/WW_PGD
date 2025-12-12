@@ -16,7 +16,6 @@ pip install ww_pgd
 
 ## Quickstart
 
-<code>
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -38,4 +37,3 @@ for epoch in range(num_epochs):
 
     # epoch-boundary spectral projection
     opt.apply_tail_projection(epoch=epoch, num_epochs=num_epochs)
-</code>
