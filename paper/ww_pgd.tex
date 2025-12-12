@@ -83,13 +83,11 @@ matrices.
 In practice, WeightWatcher applies a second, lightweight normalization to $X$
 that rescales its eigenvalues so that their average magnitude is $\mathcal{O}(1)$.
 This removes an otherwise arbitrary global scale and makes spectral diagnostics
-(such as $\alpha$, $\texttt{num\_pl\_spikes}$, and $\texttt{detX\_num}$) directly
+(such as $\alpha$, \texttt{num\_pl\_spikes}, and \texttt{detX\_num}) directly
 comparable across layers of different sizes.
-
 This second normalization does \emph{not} alter the shape of the spectrum, only
 its overall scale, and is essential for defining the ERG trace--log condition
 consistently.
-
 All spectral quantities used by \WWPGD\ are computed from the spectrum of this
 normalized matrix.
 
@@ -176,12 +174,11 @@ of spectra: the set of weight matrices whose ESD tails satisfy
 \qquad
 \sum_{i \in \text{tail}} \log \lambda_i = 0.
 \]
-
 Standard optimizers do not explicitly enforce these conditions.
 \WWPGD\ augments them by projecting weights back toward this manifold during
 training.
 
-\subsection{Algorithmic Structure}
+\subsection{Algorithmic Structure (high level)}
 
 Each training iteration consists of two stages:
 \begin{enumerate}
@@ -200,7 +197,7 @@ constraint set by:
 \item reshaping the tail eigenvalues toward a power-law template with
 target exponent $\alpha \to 2$,
 \item retracting to exactly satisfy the trace--log constraint,
-\item reconstructing $W$ and blending with the pre-projection weights.
+\item reconstructing $W$ and \textbf{blending} with the pre-projection weights.
 \end{itemize}
 \end{enumerate}
 
@@ -215,11 +212,136 @@ As training progresses and $\alpha$ approaches $2$, the projection is gradually
 hardened, yielding a homotopy toward the ERG fixed point rather than a hard
 constraint from initialization.
 
+\subsection{PGD as projection onto a spectral constraint set}
+
+Let $W^{(t)}$ denote the weights at the start of epoch $t$, and let the base
+optimizer (SGD/Adam/AdamW/Muon) produce an intermediate update
+\begin{equation}
+W^{(t+\frac12)} \;=\; W^{(t)} - \eta_t \nabla_W \mathcal{L}(W^{(t)}).
+\end{equation}
+\WWPGD\ then applies a projection-like map
+\begin{equation}
+W^{(t+1)} \;=\; \Pi_{\mathcal{C}_t}\!\left(W^{(t+\frac12)}\right),
+\end{equation}
+where the (estimated) constraint set $\mathcal{C}_t$ is defined implicitly by:
+\begin{itemize}
+\item a tail index set $\mathcal{T}_t$ (chosen by the midpoint rule from WeightWatcher),
+\item the HTSR criticality target $\alpha_t \downarrow 2$,
+\item the SETOL ERG condition $\sum_{i\in\mathcal{T}_t}\log\lambda_i = 0$.
+\end{itemize}
+Because $\mathcal{C}_t$ is defined through the spectrum of $X=(1/N)W^\top W$,
+the projection is most naturally implemented by modifying eigenvalues (or singular
+values) and reconstructing the matrix.
+
+\subsection{Spectral parameterization and tail extraction}
+
+Compute the SVD of the intermediate weights:
+\begin{equation}
+W^{(t+\frac12)} = U \Sigma V^\top,
+\qquad
+\Sigma=\mathrm{diag}(\sigma_1,\ldots,\sigma_M),
+\end{equation}
+and define the normalized correlation matrix
+\begin{equation}
+X = \frac{1}{N}\,(W^{(t+\frac12)})^\top W^{(t+\frac12)}
+   = V\,\frac{1}{N}\Sigma^2\,V^\top.
+\end{equation}
+Thus the eigenvalues of $X$ are
+\begin{equation}
+\lambda_i = \frac{1}{N}\sigma_i^2.
+\end{equation}
+
+WeightWatcher provides $\texttt{num\_pl\_spikes}$ and $\texttt{detX\_num}$, and we
+define the tail size
+\[
+k_{\text{mid}}=\left\lfloor\frac{\texttt{num\_pl\_spikes}+\texttt{detX\_num}}{2}\right\rfloor,
+\]
+which induces a tail index set $\mathcal{T}_t=\{1,\ldots,k_{\text{mid}}\}$ after
+ordering eigenvalues decreasingly.
+
+\subsection{Target template and ERG trace--log retraction}
+
+We define a rank-ordered power-law template on the tail:
+\begin{equation}
+\mu_i(q_t) \;=\; i^{-q_t}, \qquad i=1,\ldots,k_{\text{mid}},
+\end{equation}
+where $q_t=1/(\alpha_t-1)$ and $\alpha_t \downarrow 2$ (so $q_t\to 1$).
+
+To enforce the SETOL ERG condition, we rescale the template by a factor $A_t$ so
+that the \emph{tail trace--log is zero}:
+\begin{equation}
+\sum_{i\in\mathcal{T}_t}\log\bigl(A_t\mu_i(q_t)\bigr)=0
+\quad\Longrightarrow\quad
+A_t=\exp\!\left(-\frac{1}{k_{\text{mid}}}\sum_{i=1}^{k_{\text{mid}}}\log\mu_i(q_t)\right).
+\end{equation}
+We then set the target tail eigenvalues
+\begin{equation}
+\lambda_i^{\star} \;=\; A_t\,\mu_i(q_t), \qquad i\in\mathcal{T}_t.
+\end{equation}
+
+\subsection{Cayley-style update in log-spectrum space}
+
+Rather than a hard replacement $\lambda_i\leftarrow\lambda_i^\star$, we use a
+stable multiplicative (Cayley-style) update in log-space:
+\begin{equation}
+g_i \;=\; \log\lambda_i - \log\lambda_i^\star,
+\qquad
+\lambda_i^{\mathrm{new}} \;=\; \lambda_i \,\frac{1-\eta_c g_i}{1+\eta_c g_i},
+\qquad i\in\mathcal{T}_t,
+\end{equation}
+with $\eta_c>0$ a projection step-size, and with ratio clamping in implementation
+for numerical stability.
+This update has three useful properties: (i) it is scale-invariant in $\lambda$,
+(ii) it preserves positivity, and (iii) it becomes the identity map as $\eta_c\to 0$.
+
+After the Cayley update, we apply a final retraction so that the ERG condition is
+satisfied exactly:
+\begin{equation}
+\lambda_i^{\mathrm{proj}} \;=\; e^{\delta}\lambda_i^{\mathrm{new}},\qquad
+\delta \;=\; -\frac{1}{k_{\text{mid}}}\sum_{i\in\mathcal{T}_t}\log\lambda_i^{\mathrm{new}},
+\qquad i\in\mathcal{T}_t,
+\end{equation}
+so that $\sum_{i\in\mathcal{T}_t}\log\lambda_i^{\mathrm{proj}}=0$.
+
+Non-tail eigenvalues are left unchanged:
+\[
+\lambda_i^{\mathrm{proj}}=\lambda_i,\qquad i\notin\mathcal{T}_t.
+\]
+
+\subsection{Reconstruction and \texorpdfstring{blend}{blend} step}
+
+Convert eigenvalues back to singular values:
+\begin{equation}
+\sigma_i^{\mathrm{proj}} = \sqrt{N\,\lambda_i^{\mathrm{proj}}}.
+\end{equation}
+Let $\Sigma^{\mathrm{proj}}=\mathrm{diag}(\sigma_i^{\mathrm{proj}})$ and define
+the projected matrix
+\begin{equation}
+W_{\mathrm{proj}}^{(t+\frac12)} = U \Sigma^{\mathrm{proj}} V^\top.
+\end{equation}
+
+Finally, \WWPGD\ applies a convex blend between the intermediate weights and the
+projected weights:
+\begin{empheq}[box=\fbox]{equation}
+W^{(t+1)} \;=\; (1-\beta_t)\,W^{(t+\frac12)} + \beta_t\,W_{\mathrm{proj}}^{(t+\frac12)} .
+\end{empheq}
+Here $\beta_t\in[0,1]$ controls the projection strength: $\beta_t=1$ is a hard
+projection (full replacement), while $\beta_t\ll 1$ yields a soft projection.
+
+This blend can be interpreted as a proximal step:
+\begin{equation}
+W^{(t+1)} = \arg\min_{W}\left\{
+\frac{1}{2}\|W-W^{(t+\frac12)}\|_F^2 + \frac{\beta_t}{2(1-\beta_t)}\|W-W_{\mathrm{proj}}^{(t+\frac12)}\|_F^2
+\right\},
+\end{equation}
+i.e.\ it trades off staying close to the base-optimizer iterate versus moving
+toward the ERG manifold estimate.
+
 % ------------------------------------------------------------
 \section{Practical Considerations}
 
-Because \WWPGD\ requires spectral decompositions, it is inherently more
-computationally expensive than pure gradient descent.
+Because \WWPGD\ requires spectral decompositions and explicit projections, it is
+inherently more computationally expensive than pure gradient descent.
 If applied too aggressively or too early, it may slow convergence or interfere
 with early representation learning.
 
@@ -227,7 +349,7 @@ For this reason, practical implementations typically include:
 \begin{itemize}
 \item warmup epochs with no projection,
 \item reduced projection frequency (e.g.\ per epoch),
-\item softened projections early in training.
+\item softened projections early in training (small $\eta_c$ and/or small $\beta_t$).
 \end{itemize}
 
 Performance optimizations and tighter integrations with base optimizers are
