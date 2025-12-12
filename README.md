@@ -91,3 +91,11 @@ See the Notebook WW-PGD-QuickStart.ipynb
 [Charles H Martin, PhD](https://www.linkedin.com/in/charlesmartin14)
 [Hari Kishan Prakash](https://www.linkedin.com/in/hari-kishan-prakash-2b786967/)
 
+<hr>
+
+#### Calculation Consulting Practice
+Need help with AI ?  Talk to Chuck
+
+[Calculation Consulting homepage](https://calculationconsulting.com)
+
+[Calculated Content Blog](https://calculatedcontent.com)
