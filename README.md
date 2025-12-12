@@ -12,8 +12,9 @@ It is designed to wrap any PyTorch optimizer:
 
 ```bash
 pip install ww_pgd
+```
 
-```markdown
+
 ## Quickstart
 
 ```python
