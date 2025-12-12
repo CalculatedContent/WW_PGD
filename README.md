@@ -8,14 +8,12 @@ It is designed to wrap any PyTorch optimizer:
 - Adam / AdamW
 - Muon (or any custom optimizer with a `step()` method)
 
-## Install
+## Install and Quickstart
 
 ```bash
 pip install ww_pgd
 
-
-## Quickstart
-
+```python
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
