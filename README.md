@@ -81,7 +81,7 @@ Train a 3-layer MLP on FashionMNIST using AdamW+Ww_PGD
 You should find that the layer alphas converge to 2.0 and
 that the test accuracies match that of the baseline (AdamW).
 
-See the Notebook [WW-PGD-QuickStart.ipynb](examples/WW-PGD-QuickStart.ipynb)
+See the notebook [WW_PGD_QuickStart.ipynb](examples/WW_PGD_QuickStart.ipynb)
 
 <hr>
 
