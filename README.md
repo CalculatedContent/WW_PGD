@@ -6,7 +6,7 @@
 It is designed to wrap any PyTorch optimizer:
 - SGD / SGD+momentum
 - Adam / AdamW
-- Muon (or any custom optimizer with a `step()` method)
+- Muon (not tested yet)
 
 Warning: This very experimental, optimized for understanding if out-of-sample performance increases,
 but is not optimized yet for numerical performance.
