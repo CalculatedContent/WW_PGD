@@ -14,7 +14,7 @@ but is not optimized yet for numerical performance.
 ## Install
 
 ```bash
-pip install ww_pgd
+pip install git+https://github.com/CalculatedContent/WW_PGD.git
 ```
 
 
