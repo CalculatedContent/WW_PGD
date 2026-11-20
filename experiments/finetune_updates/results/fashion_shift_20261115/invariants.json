@@ -1,0 +1,104 @@
+{
+  "native_delta_layer_checks": 81,
+  "runs": [
+    {
+      "seed": 101,
+      "arm": "adamw",
+      "same_pretrained_start": true,
+      "reference_unchanged": true,
+      "optimizer_state_preserved": true,
+      "bias_proposals_preserved": true,
+      "disabled_equals_adamw": null,
+      "finetune_steps": 36,
+      "wall_seconds_including_diagnostics": 0.5049121010015369
+    },
+    {
+      "seed": 101,
+      "arm": "wwpgd_updates",
+      "same_pretrained_start": true,
+      "reference_unchanged": true,
+      "optimizer_state_preserved": true,
+      "bias_proposals_preserved": true,
+      "disabled_equals_adamw": null,
+      "finetune_steps": 36,
+      "wall_seconds_including_diagnostics": 1.406901492002362
+    },
+    {
+      "seed": 101,
+      "arm": "wwpgd_disabled",
+      "same_pretrained_start": true,
+      "reference_unchanged": true,
+      "optimizer_state_preserved": true,
+      "bias_proposals_preserved": true,
+      "disabled_equals_adamw": true,
+      "finetune_steps": 36,
+      "wall_seconds_including_diagnostics": 0.5028631280001719
+    },
+    {
+      "seed": 202,
+      "arm": "adamw",
+      "same_pretrained_start": true,
+      "reference_unchanged": true,
+      "optimizer_state_preserved": true,
+      "bias_proposals_preserved": true,
+      "disabled_equals_adamw": null,
+      "finetune_steps": 36,
+      "wall_seconds_including_diagnostics": 0.5199713969996083
+    },
+    {
+      "seed": 202,
+      "arm": "wwpgd_updates",
+      "same_pretrained_start": true,
+      "reference_unchanged": true,
+      "optimizer_state_preserved": true,
+      "bias_proposals_preserved": true,
+      "disabled_equals_adamw": null,
+      "finetune_steps": 36,
+      "wall_seconds_including_diagnostics": 1.4032611459988402
+    },
+    {
+      "seed": 202,
+      "arm": "wwpgd_disabled",
+      "same_pretrained_start": true,
+      "reference_unchanged": true,
+      "optimizer_state_preserved": true,
+      "bias_proposals_preserved": true,
+      "disabled_equals_adamw": true,
+      "finetune_steps": 36,
+      "wall_seconds_including_diagnostics": 0.5106004080007551
+    },
+    {
+      "seed": 303,
+      "arm": "adamw",
+      "same_pretrained_start": true,
+      "reference_unchanged": true,
+      "optimizer_state_preserved": true,
+      "bias_proposals_preserved": true,
+      "disabled_equals_adamw": null,
+      "finetune_steps": 36,
+      "wall_seconds_including_diagnostics": 0.5361261960060801
+    },
+    {
+      "seed": 303,
+      "arm": "wwpgd_updates",
+      "same_pretrained_start": true,
+      "reference_unchanged": true,
+      "optimizer_state_preserved": true,
+      "bias_proposals_preserved": true,
+      "disabled_equals_adamw": null,
+      "finetune_steps": 36,
+      "wall_seconds_including_diagnostics": 1.4668127719996846
+    },
+    {
+      "seed": 303,
+      "arm": "wwpgd_disabled",
+      "same_pretrained_start": true,
+      "reference_unchanged": true,
+      "optimizer_state_preserved": true,
+      "bias_proposals_preserved": true,
+      "disabled_equals_adamw": true,
+      "finetune_steps": 36,
+      "wall_seconds_including_diagnostics": 0.5540092369992635
+    }
+  ]
+}

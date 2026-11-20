@@ -1,0 +1,26 @@
+{
+  "seeds": [101, 202, 303],
+  "split_seed": 20261115,
+  "source_per_class": 1000,
+  "finetune_per_class": 300,
+  "validation_per_class": 200,
+  "hidden": 128,
+  "shift_pixels": 3,
+  "pretrain_epochs": 5,
+  "finetune_epochs": 3,
+  "batch_size": 256,
+  "pretrain_lr": 0.001,
+  "finetune_lr": 0.0003,
+  "weight_decay": 0.01,
+  "threads": 1,
+  "ww_min_evals": 5,
+  "projection": {
+    "q": 1.0,
+    "min_tail": 5,
+    "blend_eta": 0.5,
+    "cayley_eta": 0.25,
+    "warmup_epochs": 0,
+    "ramp_epochs": 3,
+    "use_detx": true
+  }
+}
