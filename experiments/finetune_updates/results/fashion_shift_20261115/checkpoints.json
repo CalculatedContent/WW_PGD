@@ -1,0 +1,74 @@
+[
+  {
+    "seed": 101,
+    "arm": "pretrained",
+    "path": "checkpoints/seed_101_pretrained.pt",
+    "state_sha256": "fd673d8811a91cd736273a67d60fe11cf91d825dfa0f511682c864e4d7c3f94d"
+  },
+  {
+    "seed": 101,
+    "arm": "adamw",
+    "path": "checkpoints/seed_101_adamw.pt",
+    "state_sha256": "9f962735e5983a542c4fc11266b268140928b9cfe0014507ca4489709881d8ae"
+  },
+  {
+    "seed": 101,
+    "arm": "wwpgd_updates",
+    "path": "checkpoints/seed_101_wwpgd_updates.pt",
+    "state_sha256": "bf9c476ab984358610b59a48fbac6b391b2663b1e31e2d529467feae4daffc41"
+  },
+  {
+    "seed": 101,
+    "arm": "wwpgd_disabled",
+    "path": "checkpoints/seed_101_wwpgd_disabled.pt",
+    "state_sha256": "9f962735e5983a542c4fc11266b268140928b9cfe0014507ca4489709881d8ae"
+  },
+  {
+    "seed": 202,
+    "arm": "pretrained",
+    "path": "checkpoints/seed_202_pretrained.pt",
+    "state_sha256": "167f697fb3100592a318a5650700d7e7f49c55f3d05aa87b6f0099fb3e80cc9a"
+  },
+  {
+    "seed": 202,
+    "arm": "adamw",
+    "path": "checkpoints/seed_202_adamw.pt",
+    "state_sha256": "77e965c4dfb1f0ec93af9c406417bf36407620ee57f939da6677dd209d644db8"
+  },
+  {
+    "seed": 202,
+    "arm": "wwpgd_updates",
+    "path": "checkpoints/seed_202_wwpgd_updates.pt",
+    "state_sha256": "f70e0f49382cc5b73f6a37d92d03eae2bf4cf05d0f896c1b4b8c6b72bfae665e"
+  },
+  {
+    "seed": 202,
+    "arm": "wwpgd_disabled",
+    "path": "checkpoints/seed_202_wwpgd_disabled.pt",
+    "state_sha256": "77e965c4dfb1f0ec93af9c406417bf36407620ee57f939da6677dd209d644db8"
+  },
+  {
+    "seed": 303,
+    "arm": "pretrained",
+    "path": "checkpoints/seed_303_pretrained.pt",
+    "state_sha256": "0efece9d6009f0f21f81e83de99e87f4fc68a420c87a59ecab78c61f423a55de"
+  },
+  {
+    "seed": 303,
+    "arm": "adamw",
+    "path": "checkpoints/seed_303_adamw.pt",
+    "state_sha256": "b8e072b326104b542d29db8bf9889b23b51cf8d17530484a5b0adf617ac4c281"
+  },
+  {
+    "seed": 303,
+    "arm": "wwpgd_updates",
+    "path": "checkpoints/seed_303_wwpgd_updates.pt",
+    "state_sha256": "bd87f45de8fc6e62d3d8067a09e743795d172cbf125248ea297adc5cce1e9eba"
+  },
+  {
+    "seed": 303,
+    "arm": "wwpgd_disabled",
+    "path": "checkpoints/seed_303_wwpgd_disabled.pt",
+    "state_sha256": "b8e072b326104b542d29db8bf9889b23b51cf8d17530484a5b0adf617ac4c281"
+  }
+]

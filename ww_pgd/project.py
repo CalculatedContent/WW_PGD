@@ -13,6 +13,8 @@ from .config import WWTailConfig
 LayerSelector = Callable[[nn.Module, str, pd.Series], Optional[nn.Module]]
 
 def default_layer_selector(model: nn.Module, lname: str, row: pd.Series) -> Optional[nn.Module]:
+    if not lname:
+        return model if hasattr(model, "weight") else None
     cur: nn.Module = model
     for part in lname.split("."):
         if hasattr(cur, part):
@@ -39,22 +41,34 @@ def _cayley_update_lambdas(
     return lam_current * ratio
 
 def _shape_single_layer_tail_homotopy(
-    weight: torch.nn.Parameter,
+    weight: torch.Tensor,
     *,
     xmin: float,
     detx_num: Optional[int],
     cfg: WWTailConfig,
     hardness: float,
+    eps: float = 1e-8,
+    rank_rtol: Optional[float] = None,
+    template_dtype: torch.dtype = torch.float32,
 ) -> None:
     with torch.no_grad():
         W = weight.data
         W2 = W.reshape(W.size(0), -1)
 
         U, S, Vh = torch.linalg.svd(W2, full_matrices=False)
-        S = S.clamp_min(1e-8)
+        S = S.clamp_min(eps)
         lam = S**2
         n = lam.numel()
         if n == 0:
+            return
+
+        # Update mode must not turn roundoff-sized singular values into a tail.
+        # This shares the projection SVD rather than adding another decomposition.
+        resolved = torch.ones_like(S, dtype=torch.bool)
+        if rank_rtol is not None:
+            resolved = S > S.max() * rank_rtol
+        resolved_count = int(resolved.sum().item())
+        if resolved_count < cfg.min_tail:
             return
 
         if not (math.isfinite(xmin) and xmin > 0.0):
@@ -64,14 +78,14 @@ def _shape_single_layer_tail_homotopy(
         lam_thr = float(xmin)
 
         if detx_num is not None and detx_num > 0:
-            pl_tail_size = int((lam >= float(xmin)).sum().item())
+            pl_tail_size = int(((lam >= float(xmin)) & resolved).sum().item())
             if pl_tail_size > 0:
                 k_pl = max(1, min(n, pl_tail_size))
-                k_detx = max(1, min(n, detx_num))
+                k_detx = max(1, min(resolved_count, detx_num))
                 k_star = max(1, int(0.5 * (k_pl + k_detx)))
                 lam_thr = max(lam_thr, lam[k_star - 1].item())
 
-        tail_mask = lam >= lam_thr
+        tail_mask = (lam >= lam_thr) & resolved
         tail_size = int(tail_mask.sum().item())
         if tail_size < cfg.min_tail:
             return
@@ -79,7 +93,7 @@ def _shape_single_layer_tail_homotopy(
         lam_tail = lam[tail_mask]
 
         # Fixed q template (q≈1 -> alpha≈2)
-        r = torch.arange(1, tail_size + 1, device=W.device, dtype=torch.float32)
+        r = torch.arange(1, tail_size + 1, device=W.device, dtype=template_dtype)
         mu = r.pow(-cfg.q)
 
         # Match tail TraceLog
@@ -90,22 +104,28 @@ def _shape_single_layer_tail_homotopy(
 
         # Softened Cayley and blending
         cayley_eta_eff = float(hardness) * cfg.cayley_eta
-        lam_tail_new = _cayley_update_lambdas(lam_tail, lam_tail_target, cayley_eta_eff)
+        lam_tail_new = _cayley_update_lambdas(lam_tail, lam_tail_target, cayley_eta_eff, eps=eps)
 
         # Retract to preserve tail TraceLog
-        eps = 1e-8
         log_tail_new = torch.log(lam_tail_new + eps).sum()
         shift = (T_target - log_tail_new) / tail_size
         lam_tail_new = lam_tail_new * torch.exp(shift)
 
         # Reconstruct
         S_new = S.clone()
-        S_new[tail_mask] = torch.sqrt(lam_tail_new.clamp_min(1e-8))
+        S_new[tail_mask] = torch.sqrt(lam_tail_new.clamp_min(eps))
         W2_shaped = (U * S_new.unsqueeze(0)) @ Vh
 
         blend_eta_eff = float(hardness) * cfg.blend_eta
         W_new = (1.0 - blend_eta_eff) * W2 + blend_eta_eff * W2_shaped
         weight.data.copy_(W_new.reshape_as(W))
+
+def _projection_hardness(cfg: WWTailConfig, epoch: int) -> float:
+    if epoch < cfg.warmup_epochs:
+        return 0.0
+    if epoch >= cfg.warmup_epochs + cfg.ramp_epochs:
+        return 1.0
+    return max(0.0, min(1.0, (epoch - cfg.warmup_epochs + 1) / max(cfg.ramp_epochs, 1)))
 
 def ww_pgd_project(
     model: nn.Module,
@@ -124,15 +144,7 @@ def ww_pgd_project(
         layer_selector = default_layer_selector
 
     # hardness schedule
-    w = cfg.warmup_epochs
-    r = cfg.ramp_epochs
-    if epoch < w:
-        hardness = 0.0
-    elif epoch >= w + r:
-        hardness = 1.0
-    else:
-        hardness = (epoch - w + 1) / max(r, 1)
-    hardness = max(0.0, min(1.0, hardness))
+    hardness = _projection_hardness(cfg, epoch)
 
     watcher = ww.WeightWatcher(model=model)
     details: pd.DataFrame = watcher.analyze(detX=True, randomize=False, plot=False)

@@ -1,0 +1,45 @@
+{
+  "status": "complete",
+  "started_utc": "2026-11-15T11:17:55.924013+00:00",
+  "versions": {
+    "python": "3.12.14",
+    "torch": "2.15.0+cpu",
+    "weightwatcher": "0.7.7",
+    "numpy": "2.3.5",
+    "pandas": "2.2.3"
+  },
+  "dataset_hashes": {
+    "train-images-idx3-ubyte.gz": {
+      "md5": "8d4fb7e6c68d591d4c3dfef9ec88bf0d",
+      "sha256": "3aede38d61863908ad78613f6a32ed271626dd12800ba2636569512369268a84"
+    },
+    "train-labels-idx1-ubyte.gz": {
+      "md5": "25c81989df183df01b3e8a0aad5dffbe",
+      "sha256": "a04f17134ac03560a47e3764e11b92fc97de4d1bfaf8ba1a3aa29af54cc90845"
+    },
+    "t10k-images-idx3-ubyte.gz": {
+      "md5": "bef4ecab320f06d8554ea6380940ec79",
+      "sha256": "346e55b948d973a97e58d2351dde16a484bd415d4595297633bb08f03db6a073"
+    },
+    "t10k-labels-idx1-ubyte.gz": {
+      "md5": "bb300cfdad3c16e7a12a480ee83cd310",
+      "sha256": "67da17c76eaffca5446c3361aaab5c3cd6d1c2608764d35dfb1850b086bf8dd5"
+    }
+  },
+  "code_sha256": {
+    "experiments/finetune_updates/run.py": "cfd6329fc8c9198b7ddb654a28c38d320e8fd24d79d53bb06674cf3191d6c51e",
+    "ww_pgd/__init__.py": "a22f82173789c76936c60fcbc1f87d67c2bd3507472055505011305700ad7f3c",
+    "ww_pgd/config.py": "5398d4ef206d9454eeb3b4176b8281eb3acf9815b9a60c8e13413ad8b47c0b5c",
+    "ww_pgd/project.py": "0bc065b6f12bd3c028b223eae9fa765588904a6f18d0cf8e8ddbee5be5982285",
+    "ww_pgd/updates.py": "e36c0566a141a1ce2e6947eb5a8cc10361beea3a5d9d64a5009065cd6a667646",
+    "ww_pgd/wrapper.py": "46923cdb2a864b0f19d34d747d9738791a4d4844772aed3414df1bfe663f20b0"
+  },
+  "git_head_at_start": "62bd96e7b895317070dd5cf3c41c7bfd55840271",
+  "source_train_count": 10000,
+  "finetune_train_count": 3000,
+  "validation_count": 2000,
+  "test_count": 10000,
+  "checkpoint_selection": "fixed final epoch; no test-based selection",
+  "wall_seconds": 11.026831934002985,
+  "completed_utc": "2026-11-15T11:18:05.246494+00:00"
+}

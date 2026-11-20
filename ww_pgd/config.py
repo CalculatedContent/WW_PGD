@@ -10,6 +10,10 @@ class WWTailConfig:
       - base_optimizer.step() runs normally (SGD/Adam/AdamW/Muon/etc.)
       - ww_pgd_project() runs at epoch boundaries (or every N epochs)
 
+    WWPGDWrapper(projection_target="updates") instead applies the same tail
+    template to each selected optimizer displacement. Pass epoch to step() for
+    the schedule below; set ramp_epochs=0 for immediate full strength.
+
     This version is the “epoch-homotopy” PGD that:
       - uses fixed q (default 1.0 -> alpha≈2) in the tail template
       - uses WeightWatcher only for tail selection (xmin + detX_num)
